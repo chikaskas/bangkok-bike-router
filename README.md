@@ -20,26 +20,53 @@ it; later starts load the cache in a few seconds.
 
 ### Getting the data
 
-The OSM files are not committed — `data/` is ~500 MB. Download Thailand from
-Geofabrik and clip it to `BBOX` in `src/config.py`:
+The OSM files are not committed — `data/` is ~500 MB. `scripts/setup_data.sh`
+does the whole thing (download, clip, build) and is safe to re-run:
 
 ```bash
-curl -L -o /tmp/thailand-latest.osm.pbf \
+./scripts/setup_data.sh
+```
+
+To do it by hand:
+
+```bash
+curl -L -o data/thailand-latest.osm.pbf \
   https://download.geofabrik.de/asia/thailand-latest.osm.pbf
 
-osmium extract --bbox 100.4000,13.6400,100.6600,13.8600 \
-  -o data/bangkok.osm.pbf /tmp/thailand-latest.osm.pbf
+# BBOX in src/config.py, expanded by PAD_DEG (0.012) on every side: the node
+# handler reads nodes just outside the box so ways crossing the edge keep
+# their geometry. Clipping exactly to BBOX would silently drop them.
+osmium extract --bbox 100.3880,13.6280,100.6720,13.8720 \
+  -o data/bangkok.osm.pbf data/thailand-latest.osm.pbf
+
+./.venv/bin/python src/build_graph.py --force
 ```
 
 `--bbox` is `min_lon,min_lat,max_lon,max_lat`. `osmium extract` comes from
-`osmium-tool` (`brew install osmium-tool`), which is separate from the `osmium`
-Python package in `requirements.txt`.
+`osmium-tool` (`brew install osmium-tool`), separate from the `osmium` Python
+package in `requirements.txt`.
 
-Then build the graph:
+The extract this was developed against came from a
+[BBBike custom extract](https://extract.bbbike.org/) spanning roughly
+100.35,13.48 to 100.8,14.05 — larger than needed. Any extract that covers the
+padded box works; `build_graph.py` re-filters to `BBOX` itself.
+
+## Hosting
+
+The repo ships a devcontainer, so the app runs on GitHub Codespaces with no
+local setup — **Code → Codespaces → Create codespace on main**, then:
 
 ```bash
-./.venv/bin/python src/build_graph.py --force
+./scripts/setup_data.sh    # once: fetch the OSM extract and build the graph
+python src/server.py       # port 8000 is forwarded automatically
 ```
+
+GitHub Pages cannot host this. It serves static files only, and routing here is
+a Python process holding an 86 MB graph in memory. A browser-only version would
+mean porting the router to JavaScript and shipping a compact form of the graph:
+it is columnar typed arrays, so downcasting `float64` to `float32` and packing
+`edge_lts` into bytes would get the routing payload to roughly 17 MB raw, and
+the full-resolution geometry and name tables would want loading lazily.
 
 
 ## How the routing works
