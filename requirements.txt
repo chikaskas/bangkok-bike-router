@@ -1,0 +1,3 @@
+# Only needed to rebuild the graph from the OSM extract (src/build_graph.py).
+# The server, router, geocoder and safety model use the standard library only.
+osmium==4.3.1

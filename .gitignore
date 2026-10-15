@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# OSM source data and build caches.
+# These are large (data/ is ~500 MB) and fully regenerable:
+#   data/*.pbf  download from Geofabrik, see README "Rebuilding data"
+#   data/*.pkl  rebuild with src/build_graph.py
+data/*.pbf
+data/*.pkl
+
+# Editors / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
